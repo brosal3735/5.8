@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!--
+    Final Exam PE
+    Author: Your Name
+    Date: 2025-10-05
+  -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Final Exam PE</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; margin: 28px; }
+    h1 { margin-bottom: 10px; }
+    form { max-width: 520px; }
+    fieldset { border: 1px solid #ccc; border-radius: 8px; padding: 16px; }
+    label { display: block; margin: 10px 0 4px; }
+    input[type="text"], input[type="number"] { width: 100%; padding: 8px; box-sizing: border-box; }
+    button { margin-top: 14px; padding: 10px 16px; border: 0; border-radius: 8px; cursor: pointer; }
+    .error { color: #b00020; margin-top: 8px; display: none; }
+  </style>
+</head>
+<body>
+  <h1>Your Name, Trip Stats Calculator</h1>
+
+  <form id="tripForm" novalidate>
+    <fieldset>
+      <label for="tripName">Trip name</label>
+      <input type="text" id="tripName" placeholder="e.g., Spring Break Road Trip" required>
+
+      <label for="startMiles">Starting odometer (miles)</label>
+      <input type="number" id="startMiles" min="0" step="0.1" placeholder="e.g., 12345.6" required>
+
+      <label for="endMiles">Ending odometer (miles)</label>
+      <input type="number" id="endMiles" min="0" step="0.1" placeholder="e.g., 13025.9" required>
+
+      <label for="gallons">Gallons of gas used</label>
+      <input type="number" id="gallons" min="0" step="0.1" placeholder="e.g., 28.4" required>
+
+      <div class="error" id="errMsg"></div>
+
+      <button type="button" id="summaryBtn">Get Trip Summary</button>
+    </fieldset>
+  </form>
+
+  <script>
+    (function () {
+      "use strict";
+
+      function $(id) { return document.getElementById(id); }
+      function fmt1(n) { return Number(n).toFixed(1); }
+
+      function buildTripObject(name, miles, gallons, mpg) {
+        // Custom object with the exact fields the assignment requests
+        return {
+          "Trip Name": name,
+          "Total Miles Traveled": fmt1(miles),
+          "Total Gallons of Gas Consumed": fmt1(gallons),
+          "Mileage (Miles Per Gallon)": fmt1(mpg)
+        };
+      }
+
+      function validateInputs(name, start, end, gallons) {
+        var msg = [];
+        if (!name) msg.push("Enter a trip name.");
+        if (isNaN(start)) msg.push("Enter a valid starting odometer.");
+        if (isNaN(end)) msg.push("Enter a valid ending odometer.");
+        if (isNaN(gallons)) msg.push("Enter gallons used.");
+        if (!isNaN(start) && !isNaN(end) && end <= start) {
+          msg.push("Ending odometer must be greater than starting odometer.");
+        }
+        if (!isNaN(gallons) && gallons <= 0) {
+          msg.push("Gallons must be greater than 0.");
+        }
+        return msg.join(" ");
+      }
+
+      function openAndFillSummary(tripObj) {
+        // Open the summary page; fill it from the main page once it loads
+        var win = window.open("trip_summary.htm", "TripSummary");
+        if (!win) {
+          alert("Please enable popups to view the trip summary.");
+          return;
+        }
+
+        // A safe writer that waits until the new page is ready
+        function writeSummary() {
+          try {
+            var doc = win.document;
+            var list = doc.getElementById("summaryList");
+            if (!list) {
+              // If not ready yet, try again shortly
+              setTimeout(writeSummary, 50);
+              return;
+            }
+            // Clear then populate using a for/in loop
+            list.innerHTML = "";
+            for (var prop in tripObj) {
+              if (Object.prototype.hasOwnProperty.call(tripObj, prop)) {
+                var li = doc.createElement("li");
+                li.innerHTML = "<strong>" + prop + ":</strong> " + tripObj[prop];
+                list.appendChild(li);
+              }
+            }
+          } catch (e) {
+            // If the document is not accessible yet, retry briefly
+            setTimeout(writeSummary, 50);
+          }
+        }
+
+        // Try immediately, and also on load
+        writeSummary();
+        win.onload = writeSummary;
+      }
+
+      function handleSummary() {
+        var name = $("tripName").value.trim();
+        var start = parseFloat($("startMiles").value);
+        var end = parseFloat($("endMiles").value);
+        var gallons = parseFloat($("gallons").value);
+
+        var err = validateInputs(name, start, end, gallons);
+        var errBox = $("errMsg");
+
+        if (err) {
+          errBox.textContent = err;
+          errBox.style.display = "block";
+          return;
+        } else {
+          errBox.textContent = "";
+          errBox.style.display = "none";
+        }
+
+        var miles = end - start;
+        var mpg = miles / gallons;
+
+        var tripObj = buildTripObject(name, miles, gallons, mpg);
+        openAndFillSummary(tripObj);
+      }
+
+      var btn = $("summaryBtn");
+      if (btn.addEventListener) {
+        btn.addEventListener("click", handleSummary, false);
+      } else {
+        btn.attachEvent("onclick", handleSummary);
+      }
+    })();
+  </script>
+</body>
+</html>
